@@ -1,1 +1,3 @@
-# mipt-networks-2021
+# networks_hw_attack
+
+All data is in the `metro` branch.
